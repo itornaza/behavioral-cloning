@@ -39,9 +39,9 @@ KEEP_PROB = 0.5
 ACTIVATION = 'elu'
 STEERING_CORRECTION = 0.2
 
-FLIP_IMAGES = False
-LEFT_IMAGES = False
-RIGHT_IMAGES = False
+FLIP_IMAGES = True
+LEFT_IMAGES = True
+RIGHT_IMAGES = True
 
 #-------------
 # Functions
@@ -49,7 +49,8 @@ RIGHT_IMAGES = False
 
 def getDataFromFile():
     """
-    Parse the driving_log.csv file and return an list with the controls values
+    Parse the driving_log.csv file and return an list with the images and angle values.
+    Dataset augmentation is taking place as well for flipped, left and right images
     """
     images, angles = [], []
     with open(csv_path) as csvfile:
@@ -63,7 +64,7 @@ def getDataFromFile():
             images.append(center_image)
             angles.append(center_angle)
 
-            # Add the flipped image as well to the dataset
+            # Add the flipped image as well to the dataset (only for the center images)
             if FLIP_IMAGES:
                 flipped_image = cv2.flip(center_image, 1)
                 flipped_angle = center_angle * -1.0
@@ -168,7 +169,7 @@ def createIonModel():
     model.add(Convolution2D(36, 5, 5, activation = ACTIVATION))
     model.add(Convolution2D(48, 5, 5, activation = ACTIVATION))
     model.add(Convolution2D(64, 3, 3, activation = ACTIVATION))
-    model.add(Convolution2D(64, 3, 3, activation = ACTIVATION))
+    # model.add(Convolution2D(64, 3, 3, activation = ACTIVATION))
     
     # Fully connected layers
     model.add(Flatten())
@@ -209,5 +210,5 @@ if __name__ == '__main__':
     x_train, x_valid, y_train, y_valid = train_test_split(images, angles, test_size = TEST_SIZE)
     train_generator = generator(x_train, y_train, batch_size = BATCH_SIZE)
     valid_generator = generator(x_valid, y_valid, batch_size = BATCH_SIZE)
-    model = createSimpleModel()
+    model = createIonModel()
     trainModel(model, train_generator, len(y_train), valid_generator, len(y_valid))
