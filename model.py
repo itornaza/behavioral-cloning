@@ -65,7 +65,7 @@ def getDataFromFile():
             center_image = cv2.imread(center_image_name)
             center_angle = float(line[CSV_Headers.Steering])
             
-            if abs(cnenter_angle) > 0.85:
+            if abs(center_angle) > 0.85:
                 images.append(center_image)
                 angles.append(center_angle)
 
@@ -74,7 +74,7 @@ def getDataFromFile():
                 flipped_image = cv2.flip(center_image, 1)
                 flipped_angle = center_angle * -1.0
                 
-                if abs(cnenter_angle) > 0.85:
+                if abs(flipped_angle) > 0.85:
                     if flip_flag:
                         images.append(flipped_image)
                         angles.append(flipped_angle)
