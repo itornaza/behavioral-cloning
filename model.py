@@ -11,7 +11,7 @@ import time
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
 
-from keras.layers import Input, Flatten, Dense, Lambda, Cropping2D, Dropout
+from keras.layers import Input, Flatten, Dense, Lambda, Activation, Cropping2D, Dropout
 from keras.models import Sequential, Model
 from keras.layers.convolutional import Convolution2D
 from keras.layers.pooling import MaxPooling2D
@@ -27,39 +27,63 @@ class CSV_Headers:
     Center, Left, Right, Steering, Throttle, Brake, Speed = range(7)
 
 #-------------
-# Parameters
+# Globals
 #-------------
+
+# Dataset lists
+images = []
+angles = []
+
+# Debug controls
+DEBUG = True
+FLIP_IMAGES = True
+LEFT_IMAGES = True
+RIGHT_IMAGES = True
+
+#-----------------
+# Hyperparameters
+#-----------------
 
 BATCH_SIZE = 128
 TEST_SIZE = 0.2
-EPOCHS = 1
+EPOCHS = 4
 LOSS = 'mse'
 OPTIMIZER = 'adam'
 KEEP_PROB = 0.5
-ACTIVATION = 'elu'
-STEERING_CORRECTION = 0.2
+ACTIVATION = 'relu'
+STEERING_CORRECTION = 0.33
 CUT_OFF_ANGLE = 0.1
-
-DEBUG = True
-FLIP_IMAGES = False
-LEFT_IMAGES = False
-RIGHT_IMAGES = False
 
 #-------------
 # Functions
 #-------------
 
-def getDataFromFile():
+def appendData(image, angle):
+    """
+    Add the image and coresponding steering angle to the dataset
+    """
+    images.append(image)
+    angles.append(angle)
+
+def flipImage(image, angle):
+    """
+    Given an image and it's steering angle return the flipped image and the corresponding steering angle
+    """
+    flipped_image = cv2.flip(image, 1)
+    flipped_angle = angle * -1.0
+    return (flipped_image, flipped_angle)
+
+def prepareDataFromFile():
     """
     Parse the driving_log.csv file and return an list with the images and angle values.
     Dataset augmentation is taking place as well for flipped, left and right images
     """
-    
+
+    # Report debug parameters
     if DEBUG and FLIP_IMAGES: print("Flipping images ...")
     if DEBUG and LEFT_IMAGES: print("Processing left images ...")
     if DEBUG and RIGHT_IMAGES: print("Processing right images ...")
     
-    images, angles = [], []
     with open(csv_path) as csvfile:
         reader = csv.reader(csvfile)
             
@@ -71,20 +95,16 @@ def getDataFromFile():
             # Add the center image to the dataset
             center_image = cv2.imread(center_image_name)
             center_angle = float(line[CSV_Headers.Steering])
-            
             if abs(center_angle) > CUT_OFF_ANGLE:
-                images.append(center_image)
-                angles.append(center_angle)
+                appendData(center_image, center_angle)
 
             # Add the flipped image as well to the dataset (only for the center images)
             if FLIP_IMAGES:
-                flipped_image = cv2.flip(center_image, 1)
-                flipped_angle = center_angle * -1.0
-                
+                (flipped_image, flipped_angle) = flipImage(center_image, center_angle)
                 if abs(flipped_angle) > CUT_OFF_ANGLE:
                     if flip_flag:
-                        images.append(flipped_image)
-                        angles.append(flipped_angle)
+                        # Keep only the 50% of the flipped images controlled by the flip_flag
+                        appendData(flipped_image, flipped_angle)
                         flip_flag = False
                     else:
                         flip_flag = True
@@ -94,18 +114,17 @@ def getDataFromFile():
                 left_image_name = imag_path + line[CSV_Headers.Left].split('/')[-1]
                 left_image = cv2.imread(left_image_name)
                 left_angle = float(line[CSV_Headers.Steering]) + STEERING_CORRECTION
-                images.append(left_image)
-                angles.append(left_angle)
+                appendData(left_image, left_angle)
 
             # Add right image with correction in angle to the dataset
             if RIGHT_IMAGES:
                 right_image_name = imag_path + line[CSV_Headers.Right].split('/')[-1]
                 right_image = cv2.imread(right_image_name)
                 right_angle = float(line[CSV_Headers.Steering]) - STEERING_CORRECTION
-                images.append(right_image)
-                angles.append(right_angle)
+                appendData(right_image, right_angle)
 
-    return (images, angles)
+        # Report data size in debug mode
+        if DEBUG: print("Number of images: " + str(len(images)) + " and number of angles: " + str(len(angles)))
 
 def generator(images, angles, batch_size = BATCH_SIZE):
     """
@@ -139,34 +158,38 @@ def createSimpleModel():
     return model
 
 # Working model
-def createIonModel():
+def createModel():
     """
-    Creates a Keras model based on the NVIDIA architecture with Dropout layers to reduce overfitting.
-    The NVIDIA fully connected 1164 layer has been removed due to AWS excessive memory issues.
+    Creates a model based comprized of 3 convolution and 2 fully connected layers
     """
+    
     model = Sequential()
     
-    # Preprocessing
+    # Preprocessing layers
     model.add(Lambda(lambda x: x / 255.0 - 0.5, input_shape=(160, 320, 3)))
     model.add(Cropping2D(cropping=((70, 25), (0, 0))))
     
     # Convolution layers
-    model.add(Convolution2D(24, 5, 5, activation = ACTIVATION))
-    model.add(Convolution2D(36, 5, 5, activation = ACTIVATION))
-    model.add(Convolution2D(48, 5, 5, activation = ACTIVATION))
-    model.add(Convolution2D(64, 3, 3, activation = ACTIVATION))
-    model.add(Convolution2D(64, 3, 3, activation = ACTIVATION))
+    model.add(Convolution2D(32, 3, 3))
+    model.add(Activation(ACTIVATION))
+    model.add(MaxPooling2D(pool_size=(2,2)))
+
+    model.add(Convolution2D(32, 3, 3))
+    model.add(Activation(ACTIVATION))
+    model.add(MaxPooling2D(pool_size=(2,2)))
+
+    model.add(Convolution2D(64, 3, 3))
+    model.add(Activation(ACTIVATION))
+    model.add(MaxPooling2D(pool_size=(2,2)))
     
     # Fully connected layers
     model.add(Flatten())
-    model.add(Dense(100, activation = ACTIVATION))
-    model.add(Dropout(KEEP_PROB))
-    model.add(Dense(50, activation = ACTIVATION))
-    model.add(Dropout(KEEP_PROB))
-    model.add(Dense(10, activation = ACTIVATION))
+    model.add(Dense(64))
+    model.add(Activation(ACTIVATION))
     model.add(Dropout(KEEP_PROB))
     model.add(Dense(1))
-    
+
+    model.compile(optimizer=OPTIMIZER, loss=LOSS, metrics=[LOSS])
     return model
 
 def trainModel(model, train_generator, train_samples, valid_generator, valid_samples):
@@ -177,7 +200,6 @@ def trainModel(model, train_generator, train_samples, valid_generator, valid_sam
     # Time the training
     start = time.time()
 
-    model.compile(loss = LOSS, optimizer = OPTIMIZER)
     model.fit_generator(train_generator,
                         samples_per_epoch = train_samples,
                         validation_data = valid_generator,
@@ -192,10 +214,10 @@ def trainModel(model, train_generator, train_samples, valid_generator, valid_sam
 # Main
 #-------------
 if __name__ == '__main__':
-    (images, angles) = getDataFromFile()
-    if DEBUG: print("Number of images: " + str(len(images)) + " and number of angles: " + str(len(angles)))
+    prepareDataFromFile()
     x_train, x_valid, y_train, y_valid = train_test_split(images, angles, test_size = TEST_SIZE)
     train_generator = generator(x_train, y_train, batch_size = BATCH_SIZE)
     valid_generator = generator(x_valid, y_valid, batch_size = BATCH_SIZE)
-    model = createIonModel()
+    model = createModel()
     trainModel(model, train_generator, len(y_train), valid_generator, len(y_valid))
+
