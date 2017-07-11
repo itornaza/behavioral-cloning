@@ -38,8 +38,10 @@ OPTIMIZER = 'adam'
 KEEP_PROB = 0.5
 ACTIVATION = 'elu'
 STEERING_CORRECTION = 0.2
+CUT_OFF_ANGLE = 0.1
 
-FLIP_IMAGES = True
+DEBUG = True
+FLIP_IMAGES = False
 LEFT_IMAGES = False
 RIGHT_IMAGES = False
 
@@ -52,6 +54,11 @@ def getDataFromFile():
     Parse the driving_log.csv file and return an list with the images and angle values.
     Dataset augmentation is taking place as well for flipped, left and right images
     """
+    
+    if DEBUG and FLIP_IMAGES: print("Flipping images ...")
+    if DEBUG and LEFT_IMAGES: print("Processing left images ...")
+    if DEBUG and RIGHT_IMAGES: print("Processing right images ...")
+    
     images, angles = [], []
     with open(csv_path) as csvfile:
         reader = csv.reader(csvfile)
@@ -65,7 +72,7 @@ def getDataFromFile():
             center_image = cv2.imread(center_image_name)
             center_angle = float(line[CSV_Headers.Steering])
             
-            if abs(center_angle) > 0.85:
+            if abs(center_angle) > CUT_OFF_ANGLE:
                 images.append(center_image)
                 angles.append(center_angle)
 
@@ -74,7 +81,7 @@ def getDataFromFile():
                 flipped_image = cv2.flip(center_image, 1)
                 flipped_angle = center_angle * -1.0
                 
-                if abs(flipped_angle) > 0.85:
+                if abs(flipped_angle) > CUT_OFF_ANGLE:
                     if flip_flag:
                         images.append(flipped_image)
                         angles.append(flipped_angle)
@@ -129,38 +136,6 @@ def createSimpleModel():
     model = Sequential()
     model.add(Flatten(input_shape=(160,320,3)))
     model.add(Dense(1))
-    return model
-
-# Deprecated - Could not run on AWS due to excessing memory constraints
-def createNVIDIAModel():
-    """
-    Creates a Keras model based on the NVIDIA architecture with Dropout layers to reduce overfitting
-    """
-    model = Sequential()
-
-    # Preprocessing
-    model.add(Lambda(lambda x: x / 255.0 - 0.5, input_shape=(160, 320, 3)))
-    model.add(Cropping2D(cropping=((70, 25), (0, 0))))
-    
-    # Convolution layers
-    model.add(Convolution2D(24, 5, 5, activation = ACTIVATION))
-    model.add(Convolution2D(36, 5, 5, activation = ACTIVATION))
-    model.add(Convolution2D(48, 5, 5, activation = ACTIVATION))
-    model.add(Convolution2D(64, 3, 3, activation = ACTIVATION))
-    model.add(Convolution2D(64, 3, 3, activation = ACTIVATION))
-    
-    # Fully connected layers
-    model.add(Flatten())
-    model.add(Dense(1164, activation = ACTIVATION))
-    model.add(Dropout(KEEP_PROB))
-    model.add(Dense(100, activation = ACTIVATION))
-    model.add(Dropout(KEEP_PROB))
-    model.add(Dense(50, activation = ACTIVATION))
-    model.add(Dropout(KEEP_PROB))
-    model.add(Dense(10, activation = ACTIVATION))
-    model.add(Dropout(KEEP_PROB))
-    model.add(Dense(1))
-    
     return model
 
 # Working model
@@ -218,6 +193,7 @@ def trainModel(model, train_generator, train_samples, valid_generator, valid_sam
 #-------------
 if __name__ == '__main__':
     (images, angles) = getDataFromFile()
+    if DEBUG: print("Number of images: " + str(len(images)) + " and number of angles: " + str(len(angles)))
     x_train, x_valid, y_train, y_valid = train_test_split(images, angles, test_size = TEST_SIZE)
     train_generator = generator(x_train, y_train, batch_size = BATCH_SIZE)
     valid_generator = generator(x_valid, y_valid, batch_size = BATCH_SIZE)
