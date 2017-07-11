@@ -40,8 +40,8 @@ ACTIVATION = 'elu'
 STEERING_CORRECTION = 0.2
 
 FLIP_IMAGES = True
-LEFT_IMAGES = True
-RIGHT_IMAGES = True
+LEFT_IMAGES = False
+RIGHT_IMAGES = False
 
 #-------------
 # Functions
@@ -55,21 +55,32 @@ def getDataFromFile():
     images, angles = [], []
     with open(csv_path) as csvfile:
         reader = csv.reader(csvfile)
+            
+        # Control to get only the 50% of the flipped images
+        flip_flag = True
         for line in reader:
             center_image_name = imag_path + line[CSV_Headers.Center].split('/')[-1]
         
             # Add the center image to the dataset
             center_image = cv2.imread(center_image_name)
             center_angle = float(line[CSV_Headers.Steering])
-            images.append(center_image)
-            angles.append(center_angle)
+            
+            if abs(cnenter_angle) > 0.85:
+                images.append(center_image)
+                angles.append(center_angle)
 
             # Add the flipped image as well to the dataset (only for the center images)
             if FLIP_IMAGES:
                 flipped_image = cv2.flip(center_image, 1)
                 flipped_angle = center_angle * -1.0
-                images.append(flipped_image)
-                angles.append(flipped_angle)
+                
+                if abs(cnenter_angle) > 0.85:
+                    if flip_flag:
+                        images.append(flipped_image)
+                        angles.append(flipped_angle)
+                        flip_flag = False
+                    else:
+                        flip_flag = True
 
             # Add the left image with correction in angle to the dataset
             if LEFT_IMAGES:
@@ -169,7 +180,7 @@ def createIonModel():
     model.add(Convolution2D(36, 5, 5, activation = ACTIVATION))
     model.add(Convolution2D(48, 5, 5, activation = ACTIVATION))
     model.add(Convolution2D(64, 3, 3, activation = ACTIVATION))
-    # model.add(Convolution2D(64, 3, 3, activation = ACTIVATION))
+    model.add(Convolution2D(64, 3, 3, activation = ACTIVATION))
     
     # Fully connected layers
     model.add(Flatten())
