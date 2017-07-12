@@ -7,6 +7,7 @@ import csv
 import cv2
 import numpy as np
 import time
+import matplotlib.pyplot as plt
 
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
@@ -44,14 +45,14 @@ RIGHT_IMAGES = True
 # Hyperparameters
 #-----------------
 
-BATCH_SIZE = 128
+BATCH_SIZE = 128 # TODO: 256 for AWS
 TEST_SIZE = 0.2
-EPOCHS = 4
+EPOCHS = 1 # TODO: Run for 8 epochs to find where is the overfitting
 LOSS = 'mse'
 OPTIMIZER = 'adam'
 KEEP_PROB = 0.5
 ACTIVATION = 'relu'
-STEERING_CORRECTION = 0.33
+STEERING_CORRECTION = 0.31 # TODO: Last run was 0.33 and it was almost ok
 CUT_OFF_ANGLE = 0.1
 
 #-------------
@@ -73,17 +74,22 @@ def flipImage(image, angle):
     flipped_angle = angle * -1.0
     return (flipped_image, flipped_angle)
 
+def showDebugInfo():
+    """
+    Report debug parameters
+    """
+    if DEBUG and FLIP_IMAGES: print("Flipping images - enabled")
+    if DEBUG and not FLIP_IMAGES: print("Flipping images - disabled")
+    if DEBUG and LEFT_IMAGES: print("Processing left images - enabled")
+    if DEBUG and not FLIP_IMAGES: print("Flipping images - disabled")
+    if DEBUG and RIGHT_IMAGES: print("Processing right images - enabled")
+    if DEBUG and not FLIP_IMAGES: print("Flipping images - disabled")
+
 def prepareDataFromFile():
     """
     Parse the driving_log.csv file and return an list with the images and angle values.
     Dataset augmentation is taking place as well for flipped, left and right images
     """
-
-    # Report debug parameters
-    if DEBUG and FLIP_IMAGES: print("Flipping images ...")
-    if DEBUG and LEFT_IMAGES: print("Processing left images ...")
-    if DEBUG and RIGHT_IMAGES: print("Processing right images ...")
-    
     with open(csv_path) as csvfile:
         reader = csv.reader(csvfile)
             
@@ -150,19 +156,23 @@ def generator(images, angles, batch_size = BATCH_SIZE):
         # Return batch
         yield shuffle(X_train, y_train)
 
-# Deprecated - Just used to test that the pipeline works
+# Deprecated
 def createSimpleModel():
+    """
+    Just used to test that the pipeline works
+    """
     model = Sequential()
     model.add(Flatten(input_shape=(160,320,3)))
     model.add(Dense(1))
     return model
+
+# TODO: NVIDIA Architecture implement and compare
 
 # Working model
 def createModel():
     """
     Creates a model based comprized of 3 convolution and 2 fully connected layers
     """
-    
     model = Sequential()
     
     # Preprocessing layers
@@ -171,7 +181,7 @@ def createModel():
     
     # Convolution layers
     model.add(Convolution2D(32, 3, 3))
-    model.add(Activation(ACTIVATION))
+    model.add(Activation(ACTIVATION))   # TODO: Set the activation inline with the convolution
     model.add(MaxPooling2D(pool_size=(2,2)))
 
     model.add(Convolution2D(32, 3, 3))
@@ -192,28 +202,47 @@ def createModel():
     model.compile(optimizer=OPTIMIZER, loss=LOSS, metrics=[LOSS])
     return model
 
+def showStatistics(training_history):
+    """
+    Display the statistice for the model trainning
+    """
+    # Print the keys contained in the history object
+    print(training_history.history.keys())
+    
+    # Plot the training and validation loss for each epoch
+    plt.plot(training_history.history['loss'])
+    plt.plot(training_history.history['val_loss'])
+    plt.title('model mean squared error loss')
+    plt.ylabel('mean squared error loss')
+    plt.xlabel('epoch')
+    plt.legend(['training set', 'validation set'], loc='upper right')
+    plt.show()
+
 def trainModel(model, train_generator, train_samples, valid_generator, valid_samples):
     """
     Trains and saves the model as model.h5 to be used with the simulator
     """
-    
-    # Time the training
     start = time.time()
-
-    model.fit_generator(train_generator,
-                        samples_per_epoch = train_samples,
-                        validation_data = valid_generator,
-                        nb_val_samples = valid_samples,
-                        nb_epoch = EPOCHS)
+    training_history = model.fit_generator(train_generator,
+                                         samples_per_epoch = train_samples,
+                                         validation_data = valid_generator,
+                                         nb_val_samples = valid_samples,
+                                         nb_epoch = EPOCHS,
+                                         verbose = 1)
     end = time.time()
-    print("Trainined " + str(EPOCHS) + " epochs in " + str(end - start) + " seconds")
 
+    # Show timing and model statistics
+    print("Trainined " + str(EPOCHS) + " epochs in " + str(end - start) + " seconds")
+    showStatistics(training_history)
+    
+    # Save the model
     model.save('model.h5')
 
 #-------------
 # Main
 #-------------
 if __name__ == '__main__':
+    showDebugInfo()
     prepareDataFromFile()
     x_train, x_valid, y_train, y_valid = train_test_split(images, angles, test_size = TEST_SIZE)
     train_generator = generator(x_train, y_train, batch_size = BATCH_SIZE)
