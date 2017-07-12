@@ -45,14 +45,20 @@ RIGHT_IMAGES = True
 # Hyperparameters
 #-----------------
 
-BATCH_SIZE = 128 # TODO: 256 for AWS
+BATCH_SIZE = 128
+
 TEST_SIZE = 0.2
-EPOCHS = 1 # TODO: Run for 8 epochs to find where is the overfitting
+EPOCHS = 4 # TODO: Overfitting createModel after epoch number 7
 LOSS = 'mse'
 OPTIMIZER = 'adam'
 KEEP_PROB = 0.5
 ACTIVATION = 'relu'
-STEERING_CORRECTION = 0.31 # TODO: Last run was 0.33 and it was almost ok
+
+# 0.2 was bad
+# 0.35 was bad
+# 0.33 was good
+# 0.31 was awesome
+STEERING_CORRECTION = 0.31
 CUT_OFF_ANGLE = 0.1
 
 #-------------
@@ -63,6 +69,8 @@ def appendData(image, angle):
     """
     Add the image and coresponding steering angle to the dataset
     """
+    global images
+    global angles
     images.append(image)
     angles.append(angle)
 
@@ -78,12 +86,12 @@ def showDebugInfo():
     """
     Report debug parameters
     """
-    if DEBUG and FLIP_IMAGES: print("Flipping images - enabled")
-    if DEBUG and not FLIP_IMAGES: print("Flipping images - disabled")
-    if DEBUG and LEFT_IMAGES: print("Processing left images - enabled")
-    if DEBUG and not FLIP_IMAGES: print("Flipping images - disabled")
-    if DEBUG and RIGHT_IMAGES: print("Processing right images - enabled")
-    if DEBUG and not FLIP_IMAGES: print("Flipping images - disabled")
+    if DEBUG and FLIP_IMAGES: print("> Flipping images - enabled")
+    if DEBUG and not FLIP_IMAGES: print("> Flipping images - disabled")
+    if DEBUG and LEFT_IMAGES: print("> Processing left images - enabled")
+    if DEBUG and not FLIP_IMAGES: print("> Flipping images - disabled")
+    if DEBUG and RIGHT_IMAGES: print("> Processing right images - enabled")
+    if DEBUG and not FLIP_IMAGES: print("> Flipping images - disabled")
 
 def prepareDataFromFile():
     """
@@ -166,8 +174,6 @@ def createSimpleModel():
     model.add(Dense(1))
     return model
 
-# TODO: NVIDIA Architecture implement and compare
-
 # Working model
 def createModel():
     """
@@ -180,16 +186,11 @@ def createModel():
     model.add(Cropping2D(cropping=((70, 25), (0, 0))))
     
     # Convolution layers
-    model.add(Convolution2D(32, 3, 3))
-    model.add(Activation(ACTIVATION))   # TODO: Set the activation inline with the convolution
+    model.add(Convolution2D(32, 3, 3, activation = ACTIVATION))
     model.add(MaxPooling2D(pool_size=(2,2)))
-
-    model.add(Convolution2D(32, 3, 3))
-    model.add(Activation(ACTIVATION))
+    model.add(Convolution2D(32, 3, 3, activation = ACTIVATION))
     model.add(MaxPooling2D(pool_size=(2,2)))
-
-    model.add(Convolution2D(64, 3, 3))
-    model.add(Activation(ACTIVATION))
+    model.add(Convolution2D(64, 3, 3, activation = ACTIVATION))
     model.add(MaxPooling2D(pool_size=(2,2)))
     
     # Fully connected layers
@@ -198,8 +199,9 @@ def createModel():
     model.add(Activation(ACTIVATION))
     model.add(Dropout(KEEP_PROB))
     model.add(Dense(1))
-
-    model.compile(optimizer=OPTIMIZER, loss=LOSS, metrics=[LOSS])
+    
+    # Compile and return
+    model.compile(optimizer = OPTIMIZER, loss = LOSS, metrics = [LOSS])
     return model
 
 def showStatistics(training_history):
@@ -233,7 +235,7 @@ def trainModel(model, train_generator, train_samples, valid_generator, valid_sam
 
     # Show timing and model statistics
     print("Trainined " + str(EPOCHS) + " epochs in " + str(end - start) + " seconds")
-    showStatistics(training_history)
+    #TODO on local machine: showStatistics(training_history)
     
     # Save the model
     model.save('model.h5')
