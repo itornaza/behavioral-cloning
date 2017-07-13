@@ -23,6 +23,8 @@ from keras.layers.pooling import MaxPooling2D
 
 csv_path = './data_provided/driving_log.csv'
 imag_path = './data_provided/IMG/'
+recovery_path = './data_recovery/driving_log.csv'
+recovery_imag_path = './data_recovery/IMG/'
 
 class CSV_Headers:
     Center, Left, Right, Steering, Throttle, Brake, Speed = range(7)
@@ -48,7 +50,7 @@ RIGHT_IMAGES = True
 BATCH_SIZE = 128
 
 TEST_SIZE = 0.2
-EPOCHS = 4 # TODO: Overfitting createModel after epoch number 7
+EPOCHS = 3 # TODO: Overfitting createModel after epoch number 7
 LOSS = 'mse'
 OPTIMIZER = 'adam'
 KEEP_PROB = 0.5
@@ -139,6 +141,26 @@ def prepareDataFromFile():
 
         # Report data size in debug mode
         if DEBUG: print("Number of images: " + str(len(images)) + " and number of angles: " + str(len(angles)))
+
+def prepareRecoveryData():
+    with open(recovery_path) as csvfile:
+        reader = csv.reader(csvfile)
+        
+        # Control to get only the 50% of the flipped images
+        flip_flag = True
+        for line in reader:
+            center_image_name = recovery_imag_path + line[CSV_Headers.Center].split('/')[-1]
+            
+            # Add the center image to the dataset
+            center_image = cv2.imread(center_image_name)
+            center_angle = float(line[CSV_Headers.Steering])
+            if abs(center_angle) > CUT_OFF_ANGLE:
+                appendData(center_image, center_angle)
+        
+        # Report data size in debug mode
+        if DEBUG:
+            print("Number of images plus recovery: " + str(len(images)) +
+                  " and number of angles plus recovery: " + str(len(angles)))
 
 def generator(images, angles, batch_size = BATCH_SIZE):
     """
@@ -235,7 +257,7 @@ def trainModel(model, train_generator, train_samples, valid_generator, valid_sam
 
     # Show timing and model statistics
     print("Trainined " + str(EPOCHS) + " epochs in " + str(end - start) + " seconds")
-    #TODO on local machine: showStatistics(training_history)
+    showStatistics(training_history)
     
     # Save the model
     model.save('model.h5')
@@ -246,9 +268,9 @@ def trainModel(model, train_generator, train_samples, valid_generator, valid_sam
 if __name__ == '__main__':
     showDebugInfo()
     prepareDataFromFile()
+    prepareRecoveryData()
     x_train, x_valid, y_train, y_valid = train_test_split(images, angles, test_size = TEST_SIZE)
     train_generator = generator(x_train, y_train, batch_size = BATCH_SIZE)
     valid_generator = generator(x_valid, y_valid, batch_size = BATCH_SIZE)
     model = createModel()
     trainModel(model, train_generator, len(y_train), valid_generator, len(y_valid))
-
