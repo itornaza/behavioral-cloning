@@ -39,6 +39,7 @@ angles = []
 
 # Debug controls
 DEBUG = True
+STATISTICS = False
 FLIP_IMAGES = True
 LEFT_IMAGES = True
 RIGHT_IMAGES = True
@@ -50,7 +51,7 @@ RIGHT_IMAGES = True
 BATCH_SIZE = 128
 
 TEST_SIZE = 0.2
-EPOCHS = 3 # TODO: Overfitting createModel after epoch number 7
+EPOCHS = 3  # TODO: Where overfitting occurs?
 LOSS = 'mse'
 OPTIMIZER = 'adam'
 KEEP_PROB = 0.5
@@ -94,6 +95,8 @@ def showDebugInfo():
     if DEBUG and not FLIP_IMAGES: print("> Flipping images - disabled")
     if DEBUG and RIGHT_IMAGES: print("> Processing right images - enabled")
     if DEBUG and not FLIP_IMAGES: print("> Flipping images - disabled")
+    if STATISTICS: print("> Statistics - enabled")
+    if not STATISTICS: print("> Statistics - disabled")
 
 def prepareDataFromFile():
     """
@@ -256,8 +259,9 @@ def trainModel(model, train_generator, train_samples, valid_generator, valid_sam
     end = time.time()
 
     # Show timing and model statistics
-    print("Trainined " + str(EPOCHS) + " epochs in " + str(end - start) + " seconds")
-    showStatistics(training_history)
+    if STATISTICS:
+        print("Trainined " + str(EPOCHS) + " epochs in " + str(end - start) + " seconds")
+        showStatistics(training_history)
     
     # Save the model
     model.save('model.h5')
