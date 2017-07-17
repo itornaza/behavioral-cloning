@@ -13,10 +13,10 @@ The goals / steps of this project are the following:
 
 [//]: # (Image References)
 
-[image2]: ./examples/center_2016_12_01_13_33_25_450.jpg "Center line driving"
-[image3]: ./examples/placeholder_small.png "Recovery Image"
-[image4]: ./examples/placeholder_small.png "Recovery Image"
-[image5]: ./examples/placeholder_small.png "Recovery Image"
+[image2]: ./examples/center_driving.jpg "Center line driving"
+[image3]: ./examples/recover_1.jpg "Recovery Image"
+[image4]: ./examples/recover_2.jpg "Recovery Image"
+[image5]: ./examples/recover_3.jpg "Recovery Image"
 [image6]: ./examples/placeholder_small.png "Normal Image"
 [image7]: ./examples/placeholder_small.png "Flipped Image"
 
@@ -116,7 +116,7 @@ To capture good driving behavior, I relied on the default udacity data for cente
 
 ![alt text][image2]
 
-I then recorded the vehicle recovering from the left side and right sides of the road back to center so that the vehicle would learn to .... These images show what a recovery looks like starting from ... :
+I then recorded the vehicle recovering from the left side and right sides of the road back to center so that the vehicle would learn to lean towords the center of the road. These images show what a recovery looks like starting from right towards the center line:
 
 ![alt text][image3]
 ![alt text][image4]
