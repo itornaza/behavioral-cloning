@@ -123,7 +123,7 @@ To augment the data set, I also flipped images and angles thinking that this wou
 ![alt text][image3]
 ![alt text][image6]
 
-After the collection process, I had 20329 number of data points. This includes the 50% of the flipped center line images, and the recovery images. In addition, the images with steering less than 0.1 are not included. I then preprocessed this data by normalizing the ppixel values from [0 - 255] to [-0.5 to 0.5] in order to have zero mean and zero variance. 
+After the collection process, I had 20329 number of data points. This includes the 50% of the flipped center line images, and the recovery images. In addition, the images with steering less than 0.1 are not included. I then preprocessed this data by normalizing the ppixel values from [0 - 255] to [-0.5 to 0.5] in order to have zero mean and zero variance. Lastly, I had cropped the 70 top pixels and the bottom 20 pixels to ignore the image details above the horizon and the hood of the car.
 
 I finally randomly shuffled the data set and put 80% of the data into a validation set containing 20% of the data. 
 
