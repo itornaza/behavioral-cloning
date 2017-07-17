@@ -51,7 +51,7 @@ RIGHT_IMAGES = True
 BATCH_SIZE = 128
 
 TEST_SIZE = 0.2
-EPOCHS = 3  # TODO: Where overfitting occurs?
+EPOCHS = 3
 LOSS = 'mse'
 OPTIMIZER = 'adam'
 KEEP_PROB = 0.5
