@@ -13,8 +13,7 @@ The goals / steps of this project are the following:
 
 [//]: # (Image References)
 
-[image1]: ./examples/placeholder.png "Model Visualization"
-[image2]: ./examples/placeholder.png "Grayscaling"
+[image2]: ./examples/center_2016_12_01_13_33_25_450.jpg "Center line driving"
 [image3]: ./examples/placeholder_small.png "Recovery Image"
 [image4]: ./examples/placeholder_small.png "Recovery Image"
 [image5]: ./examples/placeholder_small.png "Recovery Image"
@@ -79,6 +78,8 @@ My first step was to use a convolution neural network model similar to the NVIDI
 
 In order to gauge how well the model was working, I split my image and steering angle data into a training and validation set. I used 3 epochs to train the network as I have noticed that above epoch 4 overfitting occured. 
 
+I have decided not to take into consideration any image that had a steering angle less than 0.1 that simulates centerline driving with minimal correction to steering. This led to having more evenly distributed dataset.
+
 The final step was to run the simulator to see how well the car was driving around track one. There were a few spots where the vehicle fell off the track. To improve the driving behavior in these cases, I have used the left and right camera images to simulate driving with offset from the center line. Furthermore, I augmented the dataset by capturing more data for recoverying the car from the boundaries. I have also flipped the center images and inversed the steering angle in order to have more data.
 
 Another parameter that I had to look was the cut off angle that the car should use for recovery when the images from the left and right car cameras were used. I tested a lot of values with vary different results ranfging from 0.2 to 0.35. As a result I ended up using 0.31 for optimum results.
@@ -106,12 +107,12 @@ The final model architecture (createModel function in model.py) consisted of a c
 | Flatten               |                                               |	
 | Fully connected		| Outputs 64                                    |
 | ReLU                  |                                               |
-| Dropout               | Keep prob 0.65                                |
+| Dropout               | Keep prob 0.5                                 |
 | Fully connected		| Outputs 1     								|
 
 #### 3. Creation of the Training Set & Training Process
 
-To capture good driving behavior, I first recorded two laps on track one using center lane driving. Here is an example image of center lane driving:
+To capture good driving behavior, I relied on the default udacity data for center line driving. Here is an example image of center lane driving:
 
 ![alt text][image2]
 
