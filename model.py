@@ -38,8 +38,8 @@ images = []
 angles = []
 
 # Debug controls
-DEBUG = True
-STATISTICS = False
+DEBUG = False
+STATISTICS = True
 FLIP_IMAGES = True
 LEFT_IMAGES = True
 RIGHT_IMAGES = True
@@ -49,18 +49,12 @@ RIGHT_IMAGES = True
 #-----------------
 
 BATCH_SIZE = 128
-
 TEST_SIZE = 0.2
 EPOCHS = 3
 LOSS = 'mse'
 OPTIMIZER = 'adam'
 KEEP_PROB = 0.5
 ACTIVATION = 'relu'
-
-# 0.2 was bad
-# 0.35 was bad
-# 0.33 was good
-# 0.31 was awesome
 STEERING_CORRECTION = 0.31
 CUT_OFF_ANGLE = 0.1
 
@@ -79,7 +73,8 @@ def appendData(image, angle):
 
 def flipImage(image, angle):
     """
-    Given an image and it's steering angle return the flipped image and the corresponding steering angle
+    Given an image and it's steering angle return the flipped image and the 
+    corresponding steering angle
     """
     flipped_image = cv2.flip(image, 1)
     flipped_angle = angle * -1.0
@@ -95,8 +90,8 @@ def showDebugInfo():
     if DEBUG and not FLIP_IMAGES: print("> Flipping images - disabled")
     if DEBUG and RIGHT_IMAGES: print("> Processing right images - enabled")
     if DEBUG and not FLIP_IMAGES: print("> Flipping images - disabled")
-    if STATISTICS: print("> Statistics - enabled")
-    if not STATISTICS: print("> Statistics - disabled")
+    if DEBUG and STATISTICS: print("> Statistics - enabled")
+    if DEBUG and not STATISTICS: print("> Statistics - disabled")
 
 def prepareDataFromFile():
     """
@@ -143,7 +138,7 @@ def prepareDataFromFile():
                 appendData(right_image, right_angle)
 
         # Report data size in debug mode
-        if DEBUG: print("Number of images: " + str(len(images)) + " and number of angles: " + str(len(angles)))
+        if DEBUG: print("> Datapoints: " + str(len(images)))
 
 def prepareRecoveryData():
     with open(recovery_path) as csvfile:
@@ -161,9 +156,7 @@ def prepareRecoveryData():
                 appendData(center_image, center_angle)
         
         # Report data size in debug mode
-        if DEBUG:
-            print("Number of images plus recovery: " + str(len(images)) +
-                  " and number of angles plus recovery: " + str(len(angles)))
+        if DEBUG: print("> Datapoints plus recovery data: " + str(len(images)))
 
 def generator(images, angles, batch_size = BATCH_SIZE):
     """
@@ -206,11 +199,11 @@ def createModel():
     """
     model = Sequential()
     
-    # Preprocessing layers
+    # 1. Preprocessing layers
     model.add(Lambda(lambda x: x / 255.0 - 0.5, input_shape=(160, 320, 3)))
     model.add(Cropping2D(cropping=((70, 25), (0, 0))))
     
-    # Convolution layers
+    # 2. Convolution layers
     model.add(Convolution2D(32, 3, 3, activation = ACTIVATION))
     model.add(MaxPooling2D(pool_size=(2,2)))
     model.add(Convolution2D(32, 3, 3, activation = ACTIVATION))
@@ -218,7 +211,7 @@ def createModel():
     model.add(Convolution2D(64, 3, 3, activation = ACTIVATION))
     model.add(MaxPooling2D(pool_size=(2,2)))
     
-    # Fully connected layers
+    # 3. Fully connected layers
     model.add(Flatten())
     model.add(Dense(64))
     model.add(Activation(ACTIVATION))
@@ -226,7 +219,7 @@ def createModel():
     model.add(Dense(1))
     
     # Compile and return
-    model.compile(optimizer = OPTIMIZER, loss = LOSS, metrics = [LOSS])
+    model.compile(optimizer = OPTIMIZER, loss = LOSS)
     return model
 
 def showStatistics(training_history):
@@ -259,7 +252,7 @@ def trainModel(model, train_generator, train_samples, valid_generator, valid_sam
     end = time.time()
 
     # Show timing and model statistics
-    if STATISTICS:
+    if DEBUG and STATISTICS:
         print("Trainined " + str(EPOCHS) + " epochs in " + str(end - start) + " seconds")
         showStatistics(training_history)
     
@@ -270,11 +263,17 @@ def trainModel(model, train_generator, train_samples, valid_generator, valid_sam
 # Main
 #-------------
 if __name__ == '__main__':
+    # Data preparation
     showDebugInfo()
     prepareDataFromFile()
     prepareRecoveryData()
     x_train, x_valid, y_train, y_valid = train_test_split(images, angles, test_size = TEST_SIZE)
+                    
+    # Generators setup
     train_generator = generator(x_train, y_train, batch_size = BATCH_SIZE)
     valid_generator = generator(x_valid, y_valid, batch_size = BATCH_SIZE)
+                    
+    # Model training
     model = createModel()
-    trainModel(model, train_generator, len(y_train), valid_generator, len(y_valid))
+    samples_per_epoch = (len(y_train) // BATCH_SIZE) * BATCH_SIZE
+    trainModel(model, train_generator, samples_per_epoch, valid_generator, len(y_valid))
