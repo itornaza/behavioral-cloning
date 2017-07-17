@@ -17,8 +17,7 @@ The goals / steps of this project are the following:
 [image3]: ./examples/recover_1.jpg "Recovery Image"
 [image4]: ./examples/recover_2.jpg "Recovery Image"
 [image5]: ./examples/recover_3.jpg "Recovery Image"
-[image6]: ./examples/placeholder_small.png "Normal Image"
-[image7]: ./examples/placeholder_small.png "Flipped Image"
+[image6]: ./examples/flipped.png "Flipped Image"
 
 ## Rubric Points
 
@@ -124,16 +123,14 @@ I then recorded the vehicle recovering from the left side and right sides of the
 
 Then I repeated this process on track two in order to get more data points.
 
-To augment the data sat, I also flipped images and angles thinking that this would ... For example, here is an image that has then been flipped:
+To augment the data sat, I also flipped images and angles thinking that this would. For example, here is an image that has then been flipped:
 
+![alt text][image5]
 ![alt text][image6]
-![alt text][image7]
-
-Etc ....
 
 After the collection process, I had X number of data points. I then preprocessed this data by ...
 
 
-I finally randomly shuffled the data set and put Y% of the data into a validation set. 
+I finally randomly shuffled the data set and put Y% of the data into a validation set containing 20% of the data. 
 
-I used this training data for training the model. The validation set helped determine if the model was over or under fitting. The ideal number of epochs was Z as evidenced by ... I used an adam optimizer so that manually training the learning rate wasn't necessary.
+I used this training data for training the model. The validation set helped determine if the model was over or under fitting. The ideal number of epochs was 3 as evidenced by the mean squared error in the validation set. I used an adam optimizer so that manually training the learning rate wasn't necessary.
